@@ -6,6 +6,7 @@
  */
 
 #include <memory>
+#include <cstdint>
 #include <iostream>
 #include "buffer.h"
 #include "bufHashTbl.h"
@@ -17,9 +18,9 @@ namespace badgerdb {
 
 int BufHashTbl::hash(const File* file, const PageId pageNo)
 {
-  int tmp, value;
-  tmp = (long)file;  // cast of pointer to the file object to an integer
-  value = (tmp + pageNo) % HTSIZE;
+  intptr_t tmp; 
+  tmp = (intptr_t)file;  // cast of pointer to the file object to an integer
+  int value = (tmp + pageNo) % HTSIZE;
   return value;
 }
 

@@ -1,2 +1,5 @@
 /report
 /docs
+/.xmake
+/.vscode
+/build
