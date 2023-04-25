@@ -21,3 +21,7 @@ clean:
 
 doc:
 	doxygen Doxyfile
+
+test: 
+	cd src
+	./badgerdb_main.exe

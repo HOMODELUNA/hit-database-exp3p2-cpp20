@@ -9,7 +9,9 @@
 
 #include "file.h"
 #include "bufHashTbl.h"
-
+#include <iostream>
+#include<vector>
+#include<memory>
 namespace badgerdb {
 
 /**
@@ -18,53 +20,32 @@ namespace badgerdb {
 class BufMgr;
 
 /**
-* @brief Class for maintaining information about buffer pool frames
+* @brief Class for maintaining information about buffer pool frames,containing the actual page
 */
-class BufDesc {
-
+class StatedPage {
 	friend class BufMgr;
-
  private:
-	/**
-   * Pointer to file to which corresponding frame is assigned
-	 */
+	//Pointer to file to which corresponding frame is assigned
   File* file;
-
-	/**
-   * Page within file to which corresponding frame is assigned
-	 */
+  //Page within file to which corresponding frame is assigned
   PageId pageNo;
-
-	/**
-   * Frame number of the frame, in the buffer pool, being used
-	 */
+  //Frame number of the frame, in the buffer pool, being used
   FrameId	frameNo;
-
-	/**
-   * Number of times this page has been pinned
-	 */
+  //Number of times this page has been pinned
   int pinCnt;
-
-	/**
-   * True if page is dirty;  false otherwise
-	 */
+  //True if page is dirty;  false otherwise
   bool dirty;
-
-	/**
-   * True if page is valid
-	 */
+  //True if page is valid
   bool valid;
-
-	/**
-   * Has this buffer frame been reference recently
-	 */
+  //Has this buffer frame been reference recently
   bool refbit;
 
+	// the actual page
+	Page data;
 	/**
    * Initialize buffer frame for a new user
 	 */
-  void Clear()
-	{
+  void Clear()	{
     pinCnt = 0;
 		file = NULL;
 		pageNo = Page::INVALID_NUMBER;
@@ -72,7 +53,12 @@ class BufDesc {
     refbit = false;
 		valid = false;
   };
-
+	bool empty()const{return !valid;}
+	void dump_to_file(){
+		if(file == nullptr){throw std::invalid_argument("file is empty: "+file->filename());}
+		//std::cerr<<"[debug] dumping "<<file->filename()<<" page "<<pageNo<<"\n";
+		file->writePage(data);
+	}
 	/**
 	 * Set values of member variables corresponding to assignment of frame to a page in the file. Called when a frame 
 	 * in buffer pool is allocated to any page in the file through readPage() or allocPage()
@@ -90,10 +76,8 @@ class BufDesc {
     refbit = true;
   }
 
-  void Print()
-	{
-		if(file)
-		{
+  void Print()const	{
+		if(file){
 			std::cout << "file:" << file->filename() << " ";
 			std::cout << "pageNo:" << pageNo << " ";
 		}
@@ -105,52 +89,27 @@ class BufDesc {
 		std::cout << "dirty:" << dirty << " ";
 		std::cout << "refbit:" << refbit << "\n";
   }
-
+	public:
 	/**
    * Constructor of BufDesc class 
 	 */
-  BufDesc()
-	{
-  	Clear();
-  }
+  StatedPage()	{  	Clear();  }
 };
 
 
 /**
 * @brief Class to maintain statistics of buffer usage 
 */
-struct BufStats
-{
-	/**
-   * Total number of accesses to buffer pool
-	 */
+struct BufStats{
+  //Total number of accesses to buffer pool
   int accesses;
-
-	/**
-   * Number of pages read from disk (including allocs)
-	 */
+  //Number of pages read from disk (including allocs)
   int diskreads;
-
-	/**
-   * Number of pages written back to disk
-	 */
+  //Number of pages written back to disk
   int diskwrites;
-
-	/**
-   * Clear all values 
-	 */
-  void clear()
-  {
-		accesses = diskreads = diskwrites = 0;
-  }
-      
-	/**
-   * Constructor of BufStats class 
-	 */
-  BufStats()
-  {
-		clear();
-  }
+  //Clear all values to zero
+  void clear()  {		accesses = diskreads = diskwrites = 0;  }
+  BufStats() {		clear();  }
 };
 
 
@@ -160,29 +119,15 @@ struct BufStats
 class BufMgr 
 {
  private:
-	/**
-   * Current position of clockhand in our buffer pool
-	 */
+  //Current position of clockhand in our buffer pool
   FrameId clockHand;
-
-	/**
-   * Number of frames in the buffer pool
-	 */
-  std::uint32_t numBufs;
-	
-	/**
-   * Hash table mapping (File, page) to frame
-	 */
-  BufHashTbl *hashTable;
-
-	/**
-   * Array of BufDesc objects to hold information corresponding to every frame allocation from 'bufPool' (the buffer pool)
-	 */
-  BufDesc *bufDescTable;
-
-	/**
-   * Maintains Buffer pool usage statistics 
-	 */
+  //Number of frames in the buffer pool
+  const std::uint32_t numBufs;	
+  //Hash table mapping (File, page) to frame
+  BufHashTbl frame_of_each_file_and_page;
+  //Array of BufDesc objects to hold information corresponding to every frame allocation from 'bufPool' (the buffer pool)
+  std::vector<StatedPage> frames;
+  //Maintains Buffer pool usage statistics 
   BufStats bufStats;
 
 	/**
@@ -196,22 +141,12 @@ class BufMgr
 	 * @param frame   	Frame reference, frame ID of allocated frame returned via this variable
 	 * @throws BufferExceededException If no such buffer is found which can be allocated
 	 */
-  void allocBuf(FrameId & frame);
-
+  FrameId allocFrame();
+	//Actual buffer pool from which frames are allocated
+  std::vector<Page> bufPool;
  public:
-	/**
-   * Actual buffer pool from which frames are allocated
-	 */
-  Page* bufPool;
-
-	/**
-   * Constructor of BufMgr class
-	 */
+  
   BufMgr(std::uint32_t bufs);
-	
-	/**
-   * Destructor of BufMgr class
-	 */
   ~BufMgr();
 
 	/**
@@ -265,26 +200,13 @@ class BufMgr
 	 */
   void disposePage(File* file, const PageId PageNo);
 
-	/**
-   * Print member variable values. 
-	 */
+  //Print member variable values. 
   void  printSelf();
 
-	/**
-   * Get buffer pool usage statistics
-	 */
-  BufStats & getBufStats()
-  {
-		return bufStats;
-  }
-
-	/**
-   * Clear buffer pool usage statistics
-	 */
-  void clearBufStats() 
-  {
-		bufStats.clear();
-  }
+  //Get buffer pool usage statistics
+  BufStats & getBufStats(){		return bufStats;  }
+  //Clear buffer pool usage statistics
+  void clearBufStats()   {		bufStats.clear();  }
 };
 
 }

@@ -3,6 +3,11 @@
 ### 你要更改的是:
 `buffer.cpp`: Skeleton implementation of the methods. Provide your actual implementation here
 
+用法
+```
+xmake build
+xmake run
+```
 # Building the source and documentation                                        #
 
 To build the source:

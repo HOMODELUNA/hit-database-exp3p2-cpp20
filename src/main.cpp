@@ -112,18 +112,8 @@ void testBufMgr()
   const std::string& filename3 = "test.3";
   const std::string& filename4 = "test.4";
   const std::string& filename5 = "test.5";
-
-  try
-	{
-    File::remove(filename1);
-    File::remove(filename2);
-    File::remove(filename3);
-    File::remove(filename4);
-    File::remove(filename5);
-  }
-	catch(FileNotFoundException e)
-	{
-  }
+	const std::string v[] = {filename1,filename2,filename3,filename4,filename5};
+	for(auto& f : v){try {File::remove(f);}catch(FileNotFoundException e){}}
 
 	File file1 = File::create(filename1);
 	File file2 = File::create(filename2);
@@ -183,7 +173,8 @@ void test1()
 	{
 		bufMgr->readPage(file1ptr, pid[i], page);
 		sprintf((char*)&tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
-		if(strncmp(page->getRecord(rid[i]).c_str(), tmpbuf, strlen(tmpbuf)) != 0)
+		auto rec = page->getRecord(rid[i]);
+		if(strncmp(rec.c_str(), tmpbuf, strlen(tmpbuf)) != 0)
 		{
 			PRINT_ERROR("ERROR :: CONTENTS DID NOT MATCH");
 		}
