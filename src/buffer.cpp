@@ -20,12 +20,10 @@ namespace badgerdb {
 
 using Iter::enumerate;
 BufMgr::BufMgr(std::uint32_t bufs)
-	: numBufs(bufs),frames(bufs),bufPool(bufs),frame_of_each_file_and_page(((((int) (bufs * 1.2))*2)/2)+1){
-
-  for (FrameId i = 0; i < bufs; i++) 
-  {
-  	frames[i].frameNo = i;
-  	frames[i].valid = false;
+	: numBufs(bufs),frame_of_each_file_and_page(((((int) (bufs * 1.2))*2)/2)+1){
+	frames.reserve(bufs);
+  for (FrameId i = 0; i < bufs; i++){
+		frames.push_back(StatedPage(i));
   }
   clockHand = bufs - 1;
 }
@@ -48,8 +46,8 @@ FrameId BufMgr::allocFrame() {
 		}
 		if(f.pinCnt !=0){ continue;	}
 		have_a_potential_available_block = true;
-		if(f.refbit){
-			f.refbit = false;
+		if(f.recently_referenced){
+			f.recently_referenced = false;
 			continue;
 		}
 		if(f.dirty){
@@ -70,7 +68,7 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page){
 		FrameId fid;
 		frame_of_each_file_and_page.lookup(file,pageNo,fid);
 		auto & f = frames[fid];
-		f.refbit = true;
+		f.recently_referenced = true;
 		++ f.pinCnt;
 		//std::cerr<<"[debug] frame file "<<file->filename()<<" page "<<f.pageNo<<" pin count now is "<<f.pinCnt<<"\n";
 		page = & f.data;
@@ -81,7 +79,7 @@ void BufMgr::readPage(File* file, const PageId pageNo, Page*& page){
 		auto & f = frames[fid];
 		f.data = file ->readPage(pageNo);
 		frame_of_each_file_and_page.insert(file,pageNo,fid);
-		f.Set(file,pageNo);
+		f.occupy_for(file,pageNo);
 		page = & f.data;
 		return; 
 	}
@@ -123,7 +121,7 @@ void BufMgr::allocPage(File* file, PageId &pageNo, Page*& page) {
 	auto & f =frames[fid];
 	f.data = file->allocatePage();
 	//std::cerr<<"[debug] new f has id "<<fid<<", pagenum "<< f.data.page_number()<<"\n";
-	f.Set(file,f.data.page_number());
+	f.occupy_for(file,f.data.page_number());
 	frame_of_each_file_and_page.insert(file,f.pageNo,fid);
 	pageNo = f.data.page_number();
 	page = & f.data;

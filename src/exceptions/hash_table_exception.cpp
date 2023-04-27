@@ -15,7 +15,7 @@ namespace badgerdb {
 HashTableException::HashTableException()
     : BadgerDbException(""){
   std::stringstream ss;
-  ss << "Error occurred in buffer hash table.";
+  ss << "散列表的缓冲区出现故障.";
   message_.assign(ss.str());
 }
 

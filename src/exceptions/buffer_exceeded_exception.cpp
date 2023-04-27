@@ -15,7 +15,7 @@ namespace badgerdb {
 BufferExceededException::BufferExceededException()
     : BadgerDbException(""){
   std::stringstream ss;
-  ss << "Exceeded the buffer pool capacity";
+  ss << "缓冲池容量不足";
   message_.assign(ss.str());
 }
 

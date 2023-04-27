@@ -18,7 +18,7 @@ SlotInUseException::SlotInUseException(const PageId page_num,
       page_number_(page_num),
       slot_number_(slot_num) {
   std::stringstream ss;
-  ss << "Attempt to insert data to a slot that is currently in use."
+  ss << "视图请求一个正在使用的槽位."
      << " Page: " << page_number_ << " Slot: " << slot_number_;
   message_.assign(ss.str());
 }

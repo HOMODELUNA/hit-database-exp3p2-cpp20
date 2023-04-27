@@ -18,10 +18,9 @@ InvalidRecordException::InvalidRecordException(
       record_id_(rec_id),
       page_number_(page_num) {
   std::stringstream ss;
-  ss << "Request made for an invalid record."
-     << " Record {page=" << record_id_.page_number
+  ss << "请求的页不存在. 页 "<<page_number_<<" 中没有记录 Record {page=" << record_id_.page_number
      << ", slot=" << record_id_.slot_number
-     << "} from page " << page_number_;
+     << "}";
   message_.assign(ss.str());
 }
 

@@ -15,7 +15,7 @@ namespace badgerdb {
 BadBufferException::BadBufferException(FrameId frameNoIn, bool dirtyIn, bool validIn, bool refbitIn)
     : BadgerDbException(""), frameNo(frameNoIn), dirty(dirtyIn), valid(validIn), refbit(refbitIn) {
   std::stringstream ss;
-  ss << "This buffer is bad: " << frameNo;
+  ss << "失效的缓冲区: " << frameNo;
   message_.assign(ss.str());
 }
 

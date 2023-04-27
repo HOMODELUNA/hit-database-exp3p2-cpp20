@@ -18,9 +18,7 @@ InvalidPageException::InvalidPageException(
       page_number_(requested_number),
       filename_(file) {
   std::stringstream ss;
-  ss << "Request made for an invalid page."
-     << " Requested page " << page_number_
-     << " from file '" << filename_ << "'";
+  ss << "从文件 '"<<filename_<<"' 中所请求的页 "<<page_number_ <<" 不存在.";
   message_.assign(ss.str());
 }
 

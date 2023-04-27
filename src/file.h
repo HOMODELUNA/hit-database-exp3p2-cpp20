@@ -9,7 +9,7 @@
 
 #include <fstream>
 #include <string>
-#include <map>
+#include <set>
 #include <memory>
 
 #include "page.h"
@@ -19,41 +19,23 @@ namespace badgerdb {
 class FileIterator;
 
 /**
- * @brief Header metadata for files on disk which contain pages.
+ * @brief 保存了文件中关于页使用情况的信息
  */
 struct FileHeader {
-  /**
-   * Number of pages allocated in the file.
-   */
+  ///
+  ///文件中的页数
   PageId num_pages;
-
-  /**
-   * Page number of the first used page in the file.
-   */
+  ///
+  ///文件中第一个被使用的页数
   PageId first_used_page;
-
-  /**
-   * Number of free pages (allocated but unused) in the file.
-   */
+  ///
+  ///文件中可用(被分配但未使用)的页数
   PageId num_free_pages;
-
-  /**
-   * Page number of the first free (allocated but unused) page in the file.
-   */
+  ///
+  /// 第一个空余(被分配但未使用)的页数
   PageId first_free_page;
 
-  /**
-   * Returns true if this file header is equal to the other.
-   *
-   * @param rhs   Other file header to compare against.
-   * @return  True if the other header is equal to this one.
-   */
-  bool operator==(const FileHeader& rhs) const {
-    return num_pages == rhs.num_pages &&
-        num_free_pages == rhs.num_free_pages &&
-        first_used_page == rhs.first_used_page &&
-        first_free_page == rhs.first_free_page;
-  }
+  bool operator==(const FileHeader& rhs) const  = default;
 };
 
 /**
@@ -70,15 +52,15 @@ struct FileHeader {
  *
  * @warning This class is not threadsafe.
  */
-class File {
+class File :public std::enable_shared_from_this<File> {
  public:
+ using sptr = std::shared_ptr<File>;
   /**
-   * Creates a new file.
+   * 创建一个新文档
    *
-   * @param filename  Name of the file.
-   * @throws  FileExistsException     If the requested file already exists.
+   * @throws  FileExistsException     如果文件已经存在
    */
-  static File create(const std::string& filename);
+  static sptr create(const std::string& filename);
 
   /**
    * Opens the file named fileName and returns the corresponding File object.
@@ -87,42 +69,33 @@ class File {
 	 * opened again. Otherwise the UNIX file is actually opened. The fileName and the stream associated with this File object are inserted into the
 	 * open_streams_ map.
    *
-   * @param filename  Name of the file.
    * @throws  FileNotFoundException   If the requested file doesn't exist.
    */
-  static File open(const std::string& filename);
+  static sptr open(const std::string& filename);
 
   /**
-   * Deletes an existing file.
+   * 删除一个已存在的文件.
    *
    * @param filename  Name of the file.
-   * @throws  FileNotFoundException   If the file doesn't exist.
-   * @throws  FileOpenException       If the file is currently open.
+   * @throws  FileNotFoundException   如果文件不存在
+   * @throws  FileOpenException       如果文件已经打开
    */
   static void remove(const std::string& filename);
 
   /**
-   * Returns true if the file exists and is open.
-   *
-   * @param filename  Name of the file.
+   * 检查文件是否存在且已经打开
    */
   static bool isOpen(const std::string& filename);
 
 
   /**
-   * Returns true if the file exists and is open.
+   * 检查文件是否存在
    *
    * @param filename  Name of the file.
    */
   static bool exists(const std::string& filename);
 
-  /**
-   * Copy constructor.
-   * 
-   * @param other File object to copy.
-   * @return      A copy of the File object.
-   */
-  File(const File& other);
+  
 
   /**
    * Assignment operator.
@@ -130,13 +103,10 @@ class File {
    * @param rhs File object to assign.
    * @return    Newly assigned file object.
    */
-  File& operator=(const File& rhs);
+  File& operator=(const File& rhs) = delete;
 
-  /**
-   * Destructor that automatically closes the underlying file if no other
-   * File objects are using it.
-   */
-  ~File();
+
+  ~File(){opened_files.erase(filename_);stream_.close();}
 
   /**
    * Allocates a new page in the file.
@@ -153,7 +123,7 @@ class File {
    * @throws  InvalidPageException  If the page doesn't exist in the file or is
    *                                not currently used.
    */
-  Page readPage(const PageId page_number) const;
+  Page readPage(const PageId page_number) ;
 
   /**
    * Writes a page into the file, replacing any existing contents.  The page
@@ -192,8 +162,10 @@ class File {
    * @return  Iterator representing page after the last page in the file.
    */
   FileIterator end();
-
+  File(const File& other) = delete;
  private:
+
+  
   /**
    * Returns the position of the page with the given number in the file (as an
    * offset from the beginning of the file).
@@ -219,7 +191,7 @@ class File {
    * @throws  FileNotFoundException   If the underlying file doesn't exist and
    *                                  create_new is false.
    */
-  File(const std::string& name, const bool create_new);
+  File(const std::string& name, std::fstream fs):filename_(name),stream_(std::move(fs)){}
 
   /**
    * Opens the underlying file named in filename_.
@@ -254,7 +226,7 @@ class File {
    * @throws  InvalidPageException  If the page is free (unused) and
    *                                allow_free is false.
    */
-  Page readPage(const PageId page_number, const bool allow_free) const;
+  Page readPage(const PageId page_number, const bool allow_free);
 
   /**
    * Writes a page into the file at the given page number.  This does not
@@ -279,16 +251,12 @@ class File {
                  const Page& new_page);
 
   /**
-   * Reads the header for this file from disk.
-   *
-   * @return  The file header.
+   * 读取文件头
    */
-  FileHeader readHeader() const;
+  FileHeader readHeader();
 
   /**
-   * Writes the given header to the disk as the header for this file.
-   *
-   * @param header  File header to write.
+   * 写入文件头
    */
   void writeHeader(const FileHeader& header);
 
@@ -299,21 +267,14 @@ class File {
    * @param page_number   Number of page whose header is to be read.
    * @return  Header of page.
    */
-  PageHeader readPageHeader(const PageId page_number) const;
+  PageHeader readPageHeader(const PageId page_number) ;
 
-  typedef std::map<std::string,
-                   std::shared_ptr<std::fstream> > StreamMap;
-  typedef std::map<std::string, int> CountMap;
-
-  /**
-   * Streams for opened files.
-   */
-  static StreamMap open_streams_;
+  using CountMap =  std::set<std::string>;
 
   /**
    * Counts for opened files.
    */
-  static CountMap open_counts_;
+  static CountMap opened_files;
 
   /**
    * Name of the file this object represents.
@@ -323,7 +284,7 @@ class File {
   /**
    * Stream for underlying filesystem object.
    */
-  std::shared_ptr<std::fstream> stream_;
+  std::fstream stream_;
 
   friend class FileIterator;
   friend class FileTest;

@@ -3,3 +3,4 @@
 /.xmake
 /.vscode
 /build
+*.exe

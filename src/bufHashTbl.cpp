@@ -16,10 +16,10 @@
 
 namespace badgerdb {
 
-int BufHashTbl::hash(const File* file, const PageId pageNo)
+int BufHashTbl::hash(const File::sptr file, const PageId pageNo)
 {
   intptr_t tmp; 
-  tmp = (intptr_t)file;  // cast of pointer to the file object to an integer
+  tmp = (intptr_t)file.get();  // cast of pointer to the file object to an integer
   int value = (tmp + pageNo) % HTSIZE;
   return value;
 }
@@ -46,13 +46,13 @@ BufHashTbl::~BufHashTbl()
   delete [] ht;
 }
 
-void BufHashTbl::insert(const File* file, const PageId pageNo, const FrameId frameNo)
+void BufHashTbl::insert(const File::sptr file, const PageId pageNo, const FrameId frameNo)
 {
   int index = hash(file, pageNo);
 
   hashBucket* tmpBuc = ht[index];
   while (tmpBuc) {
-    if (tmpBuc->file == file && tmpBuc->pageNo == pageNo)
+    if (tmpBuc->file == file.get() && tmpBuc->pageNo == pageNo)
   		throw HashAlreadyPresentException(tmpBuc->file->filename(), tmpBuc->pageNo, tmpBuc->frameNo);
     tmpBuc = tmpBuc->next;
   }
@@ -61,19 +61,19 @@ void BufHashTbl::insert(const File* file, const PageId pageNo, const FrameId fra
   if (!tmpBuc)
   	throw HashTableException();
 
-  tmpBuc->file = (File*) file;
+  tmpBuc->file = file.get();
   tmpBuc->pageNo = pageNo;
   tmpBuc->frameNo = frameNo;
   tmpBuc->next = ht[index];
   ht[index] = tmpBuc;
 }
 
-void BufHashTbl::lookup(const File* file, const PageId pageNo, FrameId &frameNo) 
+void BufHashTbl::lookup(const File::sptr file, const PageId pageNo, FrameId &frameNo) 
 {
   int index = hash(file, pageNo);
   hashBucket* tmpBuc = ht[index];
   while (tmpBuc) {
-    if (tmpBuc->file == file && tmpBuc->pageNo == pageNo)
+    if (tmpBuc->file == file.get() && tmpBuc->pageNo == pageNo)
     {
       frameNo = tmpBuc->frameNo; // return frameNo by reference
       return;
@@ -84,7 +84,7 @@ void BufHashTbl::lookup(const File* file, const PageId pageNo, FrameId &frameNo)
   throw HashNotFoundException(file->filename(), pageNo);
 }
 
-void BufHashTbl::remove(const File* file, const PageId pageNo) {
+void BufHashTbl::remove(const File::sptr file, const PageId pageNo) {
 
   int index = hash(file, pageNo);
   hashBucket* tmpBuc = ht[index];
@@ -92,7 +92,7 @@ void BufHashTbl::remove(const File* file, const PageId pageNo) {
 
   while (tmpBuc)
 	{
-    if (tmpBuc->file == file && tmpBuc->pageNo == pageNo)
+    if (tmpBuc->file == file.get() && tmpBuc->pageNo == pageNo)
 		{
       if(prevBuc) 
 				prevBuc->next = tmpBuc->next;

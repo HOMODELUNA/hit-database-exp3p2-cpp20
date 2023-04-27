@@ -18,7 +18,7 @@ InvalidSlotException::InvalidSlotException(const PageId page_num,
       page_number_(page_num),
       slot_number_(slot_num) {
   std::stringstream ss;
-  ss << "Attempt to access a slot which is not currently in use."
+  ss << "视图请求一个尚未使用的槽. "
      << " Page: " << page_number_ << " Slot: " << slot_number_;
   message_.assign(ss.str());
 }

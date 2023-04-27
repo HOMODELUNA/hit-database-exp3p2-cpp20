@@ -15,7 +15,7 @@ namespace badgerdb {
 FileExistsException::FileExistsException(const std::string& name)
     : BadgerDbException(""), filename_(name) {
   std::stringstream ss;
-  ss << "File already exists: " << filename_;
+  ss << "文件已经存在: " << filename_;
   message_.assign(ss.str());
 }
 

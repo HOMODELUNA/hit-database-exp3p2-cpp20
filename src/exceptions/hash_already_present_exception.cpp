@@ -15,7 +15,7 @@ namespace badgerdb {
 HashAlreadyPresentException::HashAlreadyPresentException(const std::string& nameIn, PageId pageNoIn, FrameId frameNoIn)
     : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
   std::stringstream ss;
-  ss << "Entry corresponding to the hash value of file:" << name << "page:" << pageNo << "is already present in the hash table.";
+  ss << "文件 " << name << " 的第 " << pageNo << "页在散列表中已经有项.";
   message_.assign(ss.str());
 }
 

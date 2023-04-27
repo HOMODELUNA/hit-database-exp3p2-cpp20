@@ -15,7 +15,7 @@ namespace badgerdb {
 PagePinnedException::PagePinnedException(const std::string& nameIn, PageId pageNoIn, FrameId frameNoIn)
     : BadgerDbException(""), name(nameIn), pageNo(pageNoIn), frameNo(frameNoIn) {
   std::stringstream ss;
-  ss << "This page is already pinned. file:  " << name << "page: " << pageNo << "frame: " << frameNo;
+  ss << "文件 " << name << " 的第 " << pageNo << "页已经被引用.(暂存于 " << frameNo<<" 中)";
   message_.assign(ss.str());
 }
 

@@ -20,9 +20,9 @@ InsufficientSpaceException::InsufficientSpaceException(
       space_requested_(requested),
       space_available_(available) {
   std::stringstream ss;
-  ss << "Insufficient space in page " << page_number_
-     << "to hold record.  Requested: " << space_requested_ << " bytes."
-     << " Available: " << space_available_ << " bytes.";
+  ss << "页 " << page_number_
+     << " 的空间不足以容纳记录. 需要: " << space_requested_ << " 字节."
+     << " 可用: " << space_available_ << " 字节.";
   message_.assign(ss.str());
 }
 

@@ -6,57 +6,38 @@
  */
 
 #pragma once
-
+#include<cstdint>
 namespace badgerdb {
 
 /**
- * @brief Identifier for a page in a file.
+ * @brief 文件中的页号
  */
-typedef std::uint32_t PageId;
+using  PageId = uint32_t;
 
 /**
- * @brief Identifier for a slot in a page.
+ * @brief 页中的插槽号.
  */
-typedef std::uint16_t SlotId;
+using SlotId = uint16_t;
 
 /**
- * @brief Identifier for a frame in buffer pool.
+ * @brief 缓冲池中的帧号.
  */
-typedef std::uint32_t FrameId;
+using FrameId = uint32_t;
 
 /**
- * @brief Identifier for a record in a page.
+ * @brief 页中记录项的标识符.
  */
 struct RecordId {
   /**
-   * Number of page containing this record.
+   * 保有此项的页号.
    */
   PageId page_number;
 
   /**
-   * Number of slot within the page containing this record.
+   * 页中的插槽号.
    */
   SlotId slot_number;
-
-  /**
-   * Returns true if this record ID refers to the same record as the given ID.
-   *
-   * @param rhs   Record ID to compare against.
-   * @return  Whether the other ID refers to the same record as this one.
-   */
-  bool operator==(const RecordId& rhs) const {
-    return page_number == rhs.page_number && slot_number == rhs.slot_number;
-  }
-
-  /**
-   * Returns true if this record ID is different from the record as the given ID.
-   *
-   * @param rhs   Record ID to compare against.
-   * @return  Whether the other ID is different from record as this one.
-   */
-  bool operator!=(const RecordId& rhs) const {
-    return (page_number != rhs.page_number) || (slot_number != rhs.slot_number);
-  }
+  bool operator==(const RecordId& rhs) const = default;
 };
 
 }

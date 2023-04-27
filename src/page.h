@@ -17,10 +17,7 @@
 namespace badgerdb {
 
 /**
- * @brief Header metadata in a page.
- *
- * Header metadata in each page which tracks where space has been used and
- * contains a pointer to the next page in the file.
+ * @brief 页的元信息,记录了该页的空间使用情况和文档中下一页的地址.
  */
 struct PageHeader {
   /**
@@ -113,30 +110,29 @@ class Page {
   static const std::size_t SIZE = 8192;
 
   /**
-   * Size of page free space area in bytes.
+   * 每页可用空间的字节数
    */
   static const std::size_t DATA_SIZE = SIZE - sizeof(PageHeader);
 
   /**
-   * Number of page indicating that it's invalid.
+   * 表示该页的页号是不合法的
    */
   static const PageId INVALID_NUMBER = 0;
 
   /**
-   * Number of slot indicating that it's invalid.
+   * 表示该插槽号是不合法的
    */
   static const SlotId INVALID_SLOT = 0;
 
   /**
-   * Constructs a new, uninitialized page.
+   * 建立未初始化的页面
    */
   Page();
 
   /**
-   * Inserts a new record into the page.
-   *
-   * @param record_data  Bytes that compose the record.
-   * @return  ID of the newly inserted record.
+   * 插入一条记录
+   * @param record_data  组成该记录的字节
+   * @return  新插入记录的ID 
    */
   RecordId insertRecord(const std::string& record_data);
 

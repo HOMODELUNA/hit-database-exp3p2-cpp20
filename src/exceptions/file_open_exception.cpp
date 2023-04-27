@@ -15,7 +15,7 @@ namespace badgerdb {
 FileOpenException::FileOpenException(const std::string& name)
     : BadgerDbException(""), filename_(name) {
   std::stringstream ss;
-  ss << "File is currently open: " << filename_;
+  ss << "文件已经被打开: " << filename_;
   message_.assign(ss.str());
 }
 

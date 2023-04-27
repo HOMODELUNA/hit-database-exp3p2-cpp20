@@ -15,7 +15,7 @@ namespace badgerdb {
 HashNotFoundException::HashNotFoundException(const std::string& nameIn, PageId pageNoIn)
     : BadgerDbException(""), name(nameIn), pageNo(pageNoIn) {
   std::stringstream ss;
-  ss << "The hash value is not present in the hash table for file: " << name << "page: " << pageNo;
+  ss << "文件 " << name << " 的第 " << pageNo << "页在散列表中找不到对应项.";
   message_.assign(ss.str());
 }
 

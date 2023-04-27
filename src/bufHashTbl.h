@@ -61,7 +61,7 @@ class BufHashTbl
 	 * @param pageNo  Page number in the file
 	 * @return  			Hash value.
 	 */
-  int	 hash(const File* file, const PageId pageNo);
+  int	 hash(const File::sptr file, const PageId pageNo);
 
  public:
 	/**
@@ -83,7 +83,7 @@ class BufHashTbl
    * @throws  HashAlreadyPresentException	if the corresponding page already exists in the hash table
    * @throws  HashTableException (optional) if could not create a new bucket as running of memory
 	 */
-  void insert(const File* file, const PageId pageNo, const FrameId frameNo);
+  void insert(const File::sptr file, const PageId pageNo, const FrameId frameNo);
 
 	/**
    * Check if (file, pageNo) is currently in the buffer pool (ie. in
@@ -94,7 +94,7 @@ class BufHashTbl
 	 * @param frameNo Frame number reference
    * @throws HashNotFoundException if the page entry is not found in the hash table 
 	 */
-  void lookup(const File* file, const PageId pageNo, FrameId &frameNo);
+  void lookup(const File::sptr file, const PageId pageNo, FrameId &frameNo);
 
 	/**
    * Delete entry (file,pageNo) from hash table.
@@ -103,7 +103,7 @@ class BufHashTbl
 	 * @param pageNo  Page number in the file
    * @throws HashNotFoundException if the page entry is not found in the hash table 
 	 */
-  void remove(const File* file, const PageId pageNo);  
+  void remove(const File::sptr file, const PageId pageNo);  
 };
 
 }

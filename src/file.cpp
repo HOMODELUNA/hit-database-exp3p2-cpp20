@@ -23,15 +23,23 @@
 
 namespace badgerdb {
 
-File::StreamMap File::open_streams_;
-File::CountMap File::open_counts_;
+constexpr std::ios_base::openmode OPEN_MODE =std::fstream::in | std::fstream::out | std::fstream::binary;
 
-File File::create(const std::string& filename) {
-  return File(filename, true /* create_new */);
+File::CountMap File::opened_files;
+
+File::sptr File::create(const std::string& filename) {
+  if(exists(filename)){throw FileExistsException(filename);  }
+  auto res = std::make_shared<File>(filename, std::fstream(filename ,OPEN_MODE));
+
+  FileHeader header = {1 /* num_pages */, 0 /* first_used_page */,
+                         0 /* num_free_pages */, 0 /* first_free_page */};
+  res -> writeHeader(header);
+  return res;
 }
 
-File File::open(const std::string& filename) {
-  return File(filename, false /* create_new */);
+File::sptr File::open(const std::string& filename) {
+  if(! exists(filename)){throw FileNotFoundException(filename);  }
+  return std::make_shared<File>(filename, std::fstream(filename ,OPEN_MODE));
 }
 
 void File::remove(const std::string& filename) {
@@ -48,7 +56,7 @@ bool File::isOpen(const std::string& filename) {
   if (!exists(filename)) {
     return false;
   }
-  return open_counts_.find(filename) != open_counts_.end();
+  return opened_files.contains(filename);
 }
 
 bool File::exists(const std::string& filename) {
@@ -62,20 +70,8 @@ bool File::exists(const std::string& filename) {
 	return false;
 }
 
-File::File(const File& other)
-  : filename_(other.filename_),
-    stream_(open_streams_[filename_]) {
-  ++open_counts_[filename_];
-}
 
-File& File::operator=(const File& rhs) {
-  // This accounts for self-assignment and assignment of a File object for the
-  // same file.
-  close();	//close my file and associate me with the new one
-  filename_ = rhs.filename_;
-  openIfNeeded(false /* create_new */);
-  return *this;
-}
+
 
 File::~File() {
   close();
@@ -146,7 +142,7 @@ Page File::allocatePage() {
   return new_page;
 }
 
-Page File::readPage(const PageId page_number) const {
+Page File::readPage(const PageId page_number) {
   FileHeader header = readHeader();
   if (page_number >= header.num_pages) {
     throw InvalidPageException(page_number, filename_);
@@ -154,11 +150,11 @@ Page File::readPage(const PageId page_number) const {
   return readPage(page_number, false /* allow_free */);
 }
 
-Page File::readPage(const PageId page_number, const bool allow_free) const {
+Page File::readPage(const PageId page_number, const bool allow_free) {
   Page page;
-  stream_->seekg(pagePosition(page_number), std::ios::beg);
-  stream_->read(reinterpret_cast<char*>(&page.header_), sizeof(page.header_));
-  stream_->read(reinterpret_cast<char*>(&page.data_[0]), Page::DATA_SIZE);
+  stream_.seekg(pagePosition(page_number), std::ios::beg);
+  stream_.read(reinterpret_cast<char*>(&page.header_), sizeof(page.header_));
+  stream_.read(reinterpret_cast<char*>(&page.data_[0]), Page::DATA_SIZE);
   if (!allow_free && !page.isUsed()) {
     throw InvalidPageException(page_number, filename_);
   }
@@ -220,51 +216,10 @@ FileIterator File::end() {
   return FileIterator(this, Page::INVALID_NUMBER);
 }
 
-File::File(const std::string& name, const bool create_new) : filename_(name) {
-  openIfNeeded(create_new);
 
-  if (create_new) {
-    // File starts with 1 page (the header).
-    FileHeader header = {1 /* num_pages */, 0 /* first_used_page */,
-                         0 /* num_free_pages */, 0 /* first_free_page */};
-    writeHeader(header);
-  }
-}
-
-void File::openIfNeeded(const bool create_new) {
-  if (open_counts_.find(filename_) != open_counts_.end()) {	//exists an entry already
-    ++open_counts_[filename_];
-    stream_ = open_streams_[filename_];
-  } else {
-    std::ios_base::openmode mode =
-        std::fstream::in | std::fstream::out | std::fstream::binary;
-    const bool already_exists = exists(filename_);
-    if (create_new) {
-      // Error if we try to overwrite an existing file.
-      if (already_exists) {
-        throw FileExistsException(filename_);
-      }
-      // New files have to be truncated on open.
-      mode = mode | std::fstream::trunc;
-    } else {
-      // Error if we try to open a file that doesn't exist.
-      if (!already_exists) {
-        throw FileNotFoundException(filename_);
-      }
-    }
-    stream_.reset(new std::fstream(filename_, mode));
-    open_streams_[filename_] = stream_;
-    open_counts_[filename_] = 1;
-  }
-}
 
 void File::close() {
-  --open_counts_[filename_];
-  stream_.reset();
-  if (open_counts_[filename_] == 0) {
-    open_streams_.erase(filename_);
-    open_counts_.erase(filename_);
-  }
+  stream_.close();
 }
 
 void File::writePage(const PageId page_number, const Page& new_page) {
@@ -273,31 +228,31 @@ void File::writePage(const PageId page_number, const Page& new_page) {
 
 void File::writePage(const PageId page_number, const PageHeader& header,
                      const Page& new_page) {
-  stream_->seekp(pagePosition(page_number), std::ios::beg);
-  stream_->write(reinterpret_cast<const char*>(&header), sizeof(header));
-  stream_->write(reinterpret_cast<const char*>(&new_page.data_[0]),
+  stream_.seekp(pagePosition(page_number), std::ios::beg);
+  stream_.write(reinterpret_cast<const char*>(&header), sizeof(header));
+  stream_.write(reinterpret_cast<const char*>(&new_page.data_[0]),
                  Page::DATA_SIZE);
-  stream_->flush();
+  stream_.flush();
 }
 
-FileHeader File::readHeader() const {
+FileHeader File::readHeader() {
   FileHeader header;
-  stream_->seekg(0 /* pos */, std::ios::beg);
-  stream_->read(reinterpret_cast<char*>(&header), sizeof(header));
+  stream_.seekg(0 /* pos */, std::ios::beg);
+  stream_.read(reinterpret_cast<char*>(&header), sizeof(header));
 
   return header;
 }
 
 void File::writeHeader(const FileHeader& header) {
-  stream_->seekp(0 /* pos */, std::ios::beg);
-  stream_->write(reinterpret_cast<const char*>(&header), sizeof(header));
-  stream_->flush();
+  stream_.seekp(0 /* pos */, std::ios::beg);
+  stream_.write(reinterpret_cast<const char*>(&header), sizeof(header));
+  stream_.flush();
 }
 
-PageHeader File::readPageHeader(PageId page_number) const {
+PageHeader File::readPageHeader(PageId page_number) {
   PageHeader header;
-  stream_->seekg(pagePosition(page_number), std::ios::beg);
-  stream_->read(reinterpret_cast<char*>(&header), sizeof(header));
+  stream_.seekg(pagePosition(page_number), std::ios::beg);
+  stream_.read(reinterpret_cast<char*>(&header), sizeof(header));
 
   return header;
 }

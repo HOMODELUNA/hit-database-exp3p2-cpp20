@@ -25,10 +25,10 @@ using namespace badgerdb;
 const PageId num = 100;
 PageId pid[num], pageno1, pageno2, pageno3, i;
 RecordId rid[num], rid2, rid3;
-Page *page, *page2, *page3;
+//Page *page, *page2, *page3;
 char tmpbuf[100];
-BufMgr* bufMgr;
-File *file1ptr, *file2ptr, *file3ptr, *file4ptr, *file5ptr;
+//BufMgr* bufMgr;
+File::sptr file1ptr, *file2ptr, *file3ptr, *file4ptr, *file5ptr;
 
 void test1();
 void test2();
@@ -54,12 +54,12 @@ int main()
 
   {
     // Create a new database file.
-    File new_file = File::create(filename);
+    File::sptr new_file = File::create(filename);
     
     // Allocate some pages and put data on them.
     PageId third_page_number;
     for (int i = 0; i < 5; ++i) {
-      Page new_page = new_file.allocatePage();
+      Page new_page = new_file->allocatePage();
       if (i == 3) {
         // Keep track of the identifier for the third page so we can read it
         // later.
@@ -67,7 +67,7 @@ int main()
       }
       new_page.insertRecord("hello!");
       // Write the page back to the file (with the new data).
-      new_file.writePage(new_page);
+      new_file->writePage(new_page);
     }
 
     // Iterate through all pages in the file.
@@ -89,7 +89,7 @@ int main()
     new_file.writePage(third_page);
 
     // Retrieve the record we just added to the third page.
-    std::cout << "Third page has a new record: "
+    std::cout << "第三页有新纪录项: "
         << third_page.getRecord(rid) << "\n\n";
   }
   // new_file goes out of scope here, so file is automatically closed.
@@ -115,11 +115,11 @@ void testBufMgr()
 	const std::string v[] = {filename1,filename2,filename3,filename4,filename5};
 	for(auto& f : v){try {File::remove(f);}catch(FileNotFoundException e){}}
 
-	File file1 = File::create(filename1);
-	File file2 = File::create(filename2);
-	File file3 = File::create(filename3);
-	File file4 = File::create(filename4);
-	File file5 = File::create(filename5);
+	File::sptr file1 = File::create(filename1);
+	File::sptr file2 = File::create(filename2);
+	File::sptr file3 = File::create(filename3);
+	File::sptr file4 = File::create(filename4);
+	File::sptr file5 = File::create(filename5);
 
 	file1ptr = &file1;
 	file2ptr = &file2;
@@ -171,14 +171,13 @@ void test1()
 	//Reading pages back...
 	for (i = 0; i < num; i++)
 	{
-		bufMgr->readPage(file1ptr, pid[i], page);
+		auto pv = bufMgr->readPage(file1ptr, pid[i]);
 		sprintf((char*)&tmpbuf, "test.1 Page %d %7.1f", pid[i], (float)pid[i]);
-		auto rec = page->getRecord(rid[i]);
+		auto rec = pv->getRecord(rid[i]);
 		if(strncmp(rec.c_str(), tmpbuf, strlen(tmpbuf)) != 0)
 		{
 			PRINT_ERROR("ERROR :: CONTENTS DID NOT MATCH");
 		}
-		bufMgr->unPinPage(file1ptr, pid[i], false);
 	}
 	std::cout<< "Test 1 passed" << "\n";
 	
@@ -198,7 +197,7 @@ void test2()
 
 		int index = rand() % num;
     pageno1 = pid[index];
-		bufMgr->readPage(file1ptr, pageno1, page);
+		auto pv = bufMgr->readPage(file1ptr, pageno1);
 		sprintf((char*)tmpbuf, "test.1 Page %d %7.1f", pageno1, (float)pageno1);
 		if(strncmp(page->getRecord(rid[index]).c_str(), tmpbuf, strlen(tmpbuf)) != 0)
 		{
